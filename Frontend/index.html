@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered YouTube video Q&A chatbot with timestamp-referenced answers. Ask questions about any YouTube video and get intelligent, contextual answers.">
+    <title>YoutuLearn — AI YouTube Video Assistant</title>
+    <link rel="stylesheet" href="/static/index.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- ═══ Header ═══ -->
+        <header class="header">
+            <div class="header__brand">
+                <div class="header__icon">🎓</div>
+                <div>
+                    <div class="header__title">YoutuLearn</div>
+                    <div class="header__subtitle">AI Video Assistant</div>
+                </div>
+            </div>
+            <div class="header__status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Ready</span>
+            </div>
+        </header>
+
+        <!-- ═══ Main Content ═══ -->
+        <main class="main">
+            <!-- Hero Section -->
+            <section class="hero" id="heroSection">
+                <div class="hero__badge">
+                    <span class="hero__badge-dot"></span>
+                    Powered by LangGraph + Groq
+                </div>
+                <h1 class="hero__heading">Learn Any YouTube Video<br>with AI</h1>
+                <p class="hero__description">
+                    Paste a YouTube link and ask questions. Get intelligent answers 
+                    with exact timestamps — click to jump to that moment in the video.
+                </p>
+
+                <!-- URL Input Card -->
+                <div class="url-card">
+                    <div class="url-input-wrapper">
+                        <input 
+                            type="url" 
+                            id="urlInput" 
+                            class="url-input" 
+                            placeholder="Paste YouTube URL here... (e.g., https://youtube.com/watch?v=...)"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <button id="btnProcess" class="btn-process" type="button">
+                            <span id="btnProcessText">⚡ Process Video</span>
+                            <div class="spinner" id="processSpinner" style="display:none;"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Processing Status -->
+                <div class="processing-status" id="processingStatus">
+                    <div class="processing-status__step" id="stepTranscript">
+                        <span>📝</span> Extracting transcript...
+                    </div>
+                    <div class="processing-status__step" id="stepChunking">
+                        <span>✂️</span> Chunking with timestamps...
+                    </div>
+                    <div class="processing-status__step" id="stepEmbedding">
+                        <span>🧠</span> Generating embeddings...
+                    </div>
+                    <div class="processing-status__step" id="stepDone">
+                        <span>✅</span> Ready to chat!
+                    </div>
+                </div>
+            </section>
+
+            <!-- Video Info Banner -->
+            <div class="video-info" id="videoInfo">
+                <img class="video-info__thumbnail" id="videoThumbnail" alt="Video thumbnail" src="">
+                <div class="video-info__details">
+                    <div class="video-info__title" id="videoTitle">—</div>
+                    <div class="video-info__meta">
+                        <span>📊 <span id="videoChunks">0</span> chunks</span>
+                        <span>⏱️ <span id="videoDuration">0:00</span></span>
+                    </div>
+                </div>
+                <button class="btn-quiz" id="btnQuiz" type="button">📝 Quiz Me</button>
+                <button class="btn-new-video" id="btnNewVideo" type="button">↻ New Video</button>
+            </div>
+
+            <!-- ═══ Quiz Panel ═══ -->
+            <section class="quiz-panel" id="quizPanel">
+                <!-- Quiz Config -->
+                <div class="quiz-config" id="quizConfig">
+                    <div class="quiz-config__header">
+                        <h2 class="quiz-config__title">📝 Generate Quiz</h2>
+                        <button class="btn-close-quiz" id="btnCloseQuiz" type="button">✕</button>
+                    </div>
+                    <p class="quiz-config__desc">Test your knowledge from the video. Choose your settings and generate!</p>
+
+                    <!-- Difficulty -->
+                    <div class="quiz-config__section">
+                        <label class="quiz-config__label">Difficulty</label>
+                        <div class="difficulty-selector" id="difficultySelector">
+                            <button class="difficulty-pill difficulty-pill--easy active" data-difficulty="easy">🟢 Easy</button>
+                            <button class="difficulty-pill difficulty-pill--medium" data-difficulty="medium">🟡 Medium</button>
+                            <button class="difficulty-pill difficulty-pill--hard" data-difficulty="hard">🔴 Hard</button>
+                        </div>
+                    </div>
+
+                    <!-- Question Types -->
+                    <div class="quiz-config__section">
+                        <label class="quiz-config__label">Question Types</label>
+                        <div class="type-toggles">
+                            <label class="type-toggle">
+                                <input type="checkbox" id="toggleMCQ" checked>
+                                <span class="type-toggle__box">🔘 MCQs</span>
+                            </label>
+                            <label class="type-toggle">
+                                <input type="checkbox" id="toggleShortAnswer" checked>
+                                <span class="type-toggle__box">✍️ Short Answer</span>
+                            </label>
+                            <label class="type-toggle">
+                                <input type="checkbox" id="toggleFlashcard" checked>
+                                <span class="type-toggle__box">🃏 Flashcards</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Count -->
+                    <div class="quiz-config__section">
+                        <label class="quiz-config__label">Questions per type: <span id="questionCountLabel">5</span></label>
+                        <input type="range" id="questionCount" class="quiz-slider" min="1" max="10" value="5">
+                    </div>
+
+                    <button class="btn-generate-quiz" id="btnGenerateQuiz" type="button">
+                        <span id="btnGenQuizText">⚡ Generate Quiz</span>
+                        <div class="spinner" id="quizSpinner" style="display:none;"></div>
+                    </button>
+                </div>
+
+                <!-- Quiz Results -->
+                <div class="quiz-results" id="quizResults" style="display:none;">
+                    <!-- Tab Bar -->
+                    <div class="quiz-tabs">
+                        <button class="quiz-tab active" data-tab="mcq" id="tabMCQ">🔘 MCQs <span class="quiz-tab__count" id="mcqCount">0</span></button>
+                        <button class="quiz-tab" data-tab="short" id="tabShort">✍️ Short <span class="quiz-tab__count" id="shortCount">0</span></button>
+                        <button class="quiz-tab" data-tab="flash" id="tabFlash">🃏 Cards <span class="quiz-tab__count" id="flashCount">0</span></button>
+                    </div>
+
+                    <!-- Score Bar (MCQ only) -->
+                    <div class="quiz-score" id="quizScore" style="display:none;">
+                        <div class="quiz-score__bar">
+                            <div class="quiz-score__fill" id="scoreFill"></div>
+                        </div>
+                        <span class="quiz-score__text" id="scoreText">0 / 0 correct</span>
+                    </div>
+
+                    <!-- MCQ Tab -->
+                    <div class="quiz-tab-content active" id="contentMCQ"></div>
+
+                    <!-- Short Answer Tab -->
+                    <div class="quiz-tab-content" id="contentShort"></div>
+
+                    <!-- Flashcard Tab -->
+                    <div class="quiz-tab-content" id="contentFlash"></div>
+
+                    <!-- Bottom Actions -->
+                    <div class="quiz-actions">
+                        <button class="btn-regen" id="btnRegenQuiz" type="button">🔄 Regenerate</button>
+                        <button class="btn-back-chat" id="btnBackChat" type="button">💬 Back to Chat</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat Container -->
+            <section class="chat-container" id="chatContainer">
+                <!-- Messages -->
+                <div class="messages" id="messagesArea">
+                    <div class="welcome-message" id="welcomeMessage">
+                        <div class="welcome-message__icon">💬</div>
+                        <div class="welcome-message__text">
+                            Video processed! Ask anything about it.<br>
+                            I'll answer with exact timestamp references.
+                        </div>
+                        <div class="welcome-message__suggestions">
+                            <button class="suggestion-chip" data-query="What is this video about?">📋 What is this video about?</button>
+                            <button class="suggestion-chip" data-query="Summarize the key points">📝 Summarize key points</button>
+                            <button class="suggestion-chip" data-query="What are the main topics discussed?">🎯 Main topics discussed</button>
+                            <button class="suggestion-chip" data-query="Explain the most important concept">💡 Most important concept</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-indicator__dots">
+                        <div class="typing-indicator__dot"></div>
+                        <div class="typing-indicator__dot"></div>
+                        <div class="typing-indicator__dot"></div>
+                    </div>
+                    <span class="typing-indicator__text" id="typingText">Thinking...</span>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="chatInput" 
+                            class="chat-input" 
+                            placeholder="Ask a question about the video..."
+                            rows="1"
+                        ></textarea>
+                        <button id="btnSend" class="btn-send" type="button" disabled>➤</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

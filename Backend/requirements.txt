@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic-settings
+langchain
+langchain-core
+langchain-groq
+groq
+langgraph
+chromadb
+sentence-transformers
+youtube-transcript-api
+yt-dlp
